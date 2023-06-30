@@ -1,0 +1,59 @@
+name: CI
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 체크아웃
+      - uses: actions/checkout@v3
+
+      # 자바 설정
+      - name: Setup JDK 11 temurin
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "11"
+
+      # 그레이들 세팅
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      # 그레이들 실행
+      - name: Execute Gradle build
+        run: ./gradlew clean build
+
+      - name: Create deploy directory
+        run: mkdir -p deploy
+
+      - name: Copy sh files to deploy
+        run: cp scripts/*.sh deploy/
+
+      - name: Copy yml files to deploy
+        run: cp appspec.yml deploy/
+
+      - name: Copy jar files to deploy
+        run: cp build/libs/*.jar deploy/
+
+      - name: Compress files
+        run: zip springboot2-webservice deploy -r
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: List files
+        run: ls -al
+
+      - name: Copy zip file to the S3
+        run: aws s3 cp springboot2-webservice.zip s3://freelec-springboot-s3
+
+      - name: Deploy to AWS EC2 from S3
+        run: | 
+          aws deploy create-deployment \
+              --application-name freelec-springboot2-webservice \
+              --deployment-config-name CodeDeployDefault.AllAtOnce \
+              --deployment-group-name freelec-springboot2-webservice-group \
+              --s3-location bucket=freelec-springboot-s3,bundleType=zip,key=springboot2-webservice.zip

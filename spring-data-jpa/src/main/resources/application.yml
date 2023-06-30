@@ -1,0 +1,27 @@
+spring:
+  dataSource:
+    url: jdbc:h2:tcp://localhost/~/datajpa
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+#        show_sql: true
+        format_sql: true
+
+#컨트롤러에서 Pageable 파라미터로 받을 때 기본 값 글로벌 설정
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 2000
+#        one-indexed-parameters: true // 권장 X
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+#    org.hibernate.type: trace
